@@ -16,4 +16,4 @@ export COMMIT=$(git rev-parse --short HEAD)
 export FILE="Dockerfile"
 ```
 
-`wget "<https://raw.githubusercontent.com/damacus/docker-build-scripts/master/functions.sh>" > ".docker/functions.sh"`
+`wget "https://raw.githubusercontent.com/damacus/docker-build-scripts/master/functions.sh" > ".docker/functions.sh"`

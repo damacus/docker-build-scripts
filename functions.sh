@@ -47,7 +47,6 @@ push_beta() {
   true
 }
 
-
 test() {
   docker run -it "${MAINTAINER}"/"${PROJECT}" "$1"
 }
