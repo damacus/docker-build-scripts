@@ -58,6 +58,7 @@ push() {
 
     printf "\n\n--- Pushing Images to Docker Hub---\n\n"
     docker push "${MAINTAINER:?}/${PROJECT:?}:${TAG:?}"
+    docker push "${MAINTAINER:?}/${PROJECT:?}:latest"
   else
     echo "Not on master so not tagging"
     docker images
