@@ -35,6 +35,7 @@ build() {
                --build-arg DATE="${DATE:?}" \
                --build-arg COMMIT="${COMMIT:?}" \
                --build-arg DESCRIPTION="${DESCRIPTION:?}" \
+               --build-arg NPM_TOKEN="${NPM_TOKEN:?}" \
                --file "${FILE:?}" \
                --tag "${MAINTAINER:?}"/"${PROJECT:?}" .
 
