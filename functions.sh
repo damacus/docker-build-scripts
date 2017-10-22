@@ -1,26 +1,22 @@
-#!/bin/sh
+#!/bin/sh -e
 set +o pipefail
 
-# If the following variables are not set then set them
-if [[ -z $PROJECT ]];then
-  PROJECT="${NAME:-$CIRCLE_PROJECT_REPONAME}"
-fi
-if [[ -z $VCS_URL ]];then
-  VCS_URL="https://github.com/${MAINTAINER:?}/${PROJECT:?}"
-fi
-if [[ -z $DATE ]];then
-  DATE=$(date +%Y-%m-%dT%T%z)
-fi
-if [[ -z $COMMIT ]];then
-  COMMIT=$(git rev-parse --short HEAD)
-fi
-if [[ -z $FILE ]];then
-  FILE="Dockerfile"
-fi
-#You also need to set
-#PROJECT
-#MAINTAINER
-#DESCRIPTION
+MAINTAINER="${MAINTAINER:?}"
+DESCRIPTION="${DESCRIPTION:?}"
+PROJECT="${PROJECT:-$CIRCLE_PROJECT_REPONAME}"
+NPM_TOKEN=${NPM_TOKEN:-}
+
+DEFAULT_DATE=$(date +%Y-%m-%dT%T%z)
+DATE=${DATE:-$DEFAULT_DATE}
+
+DEFAULT_COMMIT=$(git rev-parse --short HEAD)
+COMMIT=${COMMIT:-$DEFAULT_COMMIT}
+
+BRANCH_DEFAULT="$(git symbolic-ref --short HEAD)"
+BRANCH="${CIRCLE_BRANCH:-BRANCH_DEFAULT}"
+
+FILE=${FILE:-Dockerfile}
+VCS_URL="https://github.com/${MAINTAINER:?}/${PROJECT:?}"
 
 build() {
   # Only load and save cache in CI environment
@@ -29,17 +25,16 @@ build() {
   fi
 
   docker build --cache-from="${MAINTAINER:?}"/"${PROJECT:?}" \
-               --build-arg PROJECT="${PROJECT:?}" \
-               --build-arg MAINTAINER="${MAINTAINER:?}" \
-               --build-arg URL="${VCS_URL:?}" \
-               --build-arg DATE="${DATE:?}" \
-               --build-arg COMMIT="${COMMIT:?}" \
-               --build-arg DESCRIPTION="${DESCRIPTION:?}" \
-               --build-arg NPM_TOKEN="${NPM_TOKEN:?}" \
-               --file "${FILE:?}" \
+               --build-arg PROJECT="${PROJECT:?}"            \
+               --build-arg MAINTAINER="${MAINTAINER:?}"      \
+               --build-arg URL="${VCS_URL:?}"                \
+               --build-arg DATE="${DATE:?}"                  \
+               --build-arg COMMIT="${COMMIT:?}"              \
+               --build-arg DESCRIPTION="${DESCRIPTION:?}"    \
+               --build-arg NPM_TOKEN="${NPM_TOKEN:?}"        \
+               --file "${FILE:?}"                            \
                --tag "${MAINTAINER:?}"/"${PROJECT:?}" .
-
-   if [[ $CI = 'true' ]];then
+   if [[ -z ${CI} ]];then
      mkdir -p /caches
      docker save -o /caches/app.tar ${MAINTAINER:?}/"${PROJECT:?}"
    fi
@@ -48,20 +43,21 @@ build() {
 push() {
   TAG=${CIRCLE_BUILD_NUM:-beta}
 
-  if [ "${CIRCLE_BRANCH}" = "master" ]; then
+  if [ "${BRANCH}" = "master" ]; then
     docker login -u "${DOCKER_LOGIN:?}" -p "${DOCKER_PASSWORD:?}"
 
-    printf "\n\n--- Images ---\n\n"
+    printf "\n\n--- Images ---\n"
     docker images "${MAINTAINER:?}/${PROJECT:?}"
 
-    printf "\n\n--- Tagging ---\n\n"
+    printf "\n\n--- Tagging ---\n"
     docker tag "${MAINTAINER:?}/${PROJECT:?}:latest" "${MAINTAINER:?}/${PROJECT:?}:${TAG:?}"
 
-    printf "\n\n--- Pushing Images to Docker Hub---\n\n"
+    printf "\n\n--- Pushing Images to Docker Hub ---\n"
     docker push "${MAINTAINER:?}/${PROJECT:?}:${TAG:?}"
     docker push "${MAINTAINER:?}/${PROJECT:?}:latest"
   else
-    echo "Not on master so not tagging"
+    printf "\n\n---Not on master so not tagging ---\n"
+    printf "\nBuilt Images"
     docker images
   fi
 }
