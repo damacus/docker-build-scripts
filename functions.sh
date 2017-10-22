@@ -34,7 +34,6 @@ build() {
                --build-arg NPM_TOKEN="${NPM_TOKEN:?}"        \
                --file "${FILE:?}"                            \
                --tag "${MAINTAINER:?}"/"${PROJECT:?}" .
-
    if [[ -z ${CI} ]];then
      mkdir -p /caches
      docker save -o /caches/app.tar ${MAINTAINER:?}/"${PROJECT:?}"
@@ -55,6 +54,7 @@ push() {
 
     printf "\n\n--- Pushing Images to Docker Hub ---\n"
     docker push "${MAINTAINER:?}/${PROJECT:?}:${TAG:?}"
+    docker push "${MAINTAINER:?}/${PROJECT:?}:latest"
   else
     printf "\n\n---Not on master so not tagging ---\n"
     printf "\nBuilt Images"
