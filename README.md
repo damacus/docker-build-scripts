@@ -8,7 +8,7 @@ Export the following variables e.g. in something like variables.sh.
 
 ### Mandatory Arguments
 
-````bash
+```shell
 PROJECT
 MAINTAINER
 DESCRIPTION
