@@ -34,7 +34,7 @@ build() {
                --build-arg NPM_TOKEN="${NPM_TOKEN:?}"        \
                --file "${FILE:?}"                            \
                --tag "${MAINTAINER:?}"/"${PROJECT:?}" .
-   if [[ -z ${CI} ]];then
+   if [[ ${CI} == 'true' ]];then
      mkdir -p /caches
      docker save -o /caches/app.tar ${MAINTAINER:?}/"${PROJECT:?}"
    fi
