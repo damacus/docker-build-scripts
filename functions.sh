@@ -1,10 +1,9 @@
-#!/bin/sh -e
+#!/bin/bash -e
 set +o pipefail
 
-MAINTAINER="${MAINTAINER:?}"
-DESCRIPTION="${DESCRIPTION:?}"
-PROJECT="${PROJECT:-$CIRCLE_PROJECT_REPONAME}"
-NPM_TOKEN=${NPM_TOKEN:-nil}
+if [[ -n "${DESCRIPTION}" ]];then
+  DESCRIPTION="${DESCRIPTION:?}"
+fi
 
 DEFAULT_DATE=$(date +%Y-%m-%dT%T%z)
 DATE=${DATE:-$DEFAULT_DATE}
@@ -13,10 +12,30 @@ DEFAULT_COMMIT=$(git rev-parse --short HEAD)
 COMMIT=${COMMIT:-$DEFAULT_COMMIT}
 
 BRANCH_DEFAULT="$(git symbolic-ref --short HEAD)"
-BRANCH="${CIRCLE_BRANCH:-BRANCH_DEFAULT}"
+BRANCH="${CIRCLE_BRANCH:-$BRANCH_DEFAULT}"
 
 FILE=${FILE:-Dockerfile}
-VCS_URL="https://github.com/${MAINTAINER:?}/${PROJECT:?}"
+
+DEFAULT_VCS_URL=$(git config --get remote.origin.url)
+# This strips the matching .git, then splits on :
+PROJECT=$(echo "${DEFAULT_VCS_URL%.git}" | cut -d: -f2)
+
+DEFAULT_MAINTAINER=$(echo "$PROJECT" | cut -d/ -f1)
+MAINTAINER=${MAINTAINER:-$DEFAULT_MAINTAINER}
+VCS_URL=${VCS_URL:-$DEFAULT_VCS_URL}
+
+DOCKER_BUILD_ARGS=( "PROJECT" "DATE" "COMMIT" "DESCRIPTION"  )
+
+build_argument() {
+  local value
+	value=$(eval echo -n '$'"$1")
+
+	if [[ -n "${value/[ ]*\\n/}" ]];then
+		echo "--build-arg $1=$value "
+	else
+    return 0
+  fi
+}
 
 build() {
   # Only load and save cache in CI environment
@@ -24,20 +43,23 @@ build() {
     docker load -i /caches/app.tar
   fi
 
-  docker build --cache-from="${MAINTAINER:?}"/"${PROJECT:?}" \
-               --build-arg PROJECT="${PROJECT:?}"            \
-               --build-arg MAINTAINER="${MAINTAINER:?}"      \
-               --build-arg URL="${VCS_URL:?}"                \
-               --build-arg DATE="${DATE:?}"                  \
-               --build-arg COMMIT="${COMMIT:?}"              \
-               --build-arg DESCRIPTION="${DESCRIPTION:?}"    \
-               --build-arg NPM_TOKEN="${NPM_TOKEN:?}"        \
-               --file "${FILE:?}"                            \
-               --tag "${MAINTAINER:?}"/"${PROJECT:?}" .
-   if [[ ${CI} == 'true' ]];then
-     mkdir -p /caches
-     docker save -o /caches/app.tar ${MAINTAINER:?}/"${PROJECT:?}"
-   fi
+  args=()
+  for arg in "${DOCKER_BUILD_ARGS[@]}";do
+  	args+=( "$(build_argument "$arg" )" )
+  done
+
+  local BUILD_ARGS="${args[*]}"
+  local CACHE="--cache-from=${PROJECT:?}"
+  local FILE_FROM="--file ${FILE:?}"
+  local TAG_ARG="--tag ${PROJECT:?}"
+
+  echo "passing build arguments ${BUILD_ARGS}"
+  eval "docker build ${CACHE} ${BUILD_ARGS} ${FILE_FROM} ${TAG_ARG} ."
+
+ if [[ ${CI} == 'true' ]];then
+   mkdir -p /caches
+   docker save -o /caches/app.tar "${PROJECT:?}"
+ fi
 }
 
 push() {
@@ -46,18 +68,18 @@ push() {
   if [ "${BRANCH}" = "master" ]; then
     docker login -u "${DOCKER_LOGIN:?}" -p "${DOCKER_PASSWORD:?}"
 
-    printf "\n\n--- Images ---\n"
-    docker images "${MAINTAINER:?}/${PROJECT:?}"
+    printf "\\n\\n--- Images ---\\n"
+    docker images "${PROJECT:?}"
 
-    printf "\n\n--- Tagging ---\n"
-    docker tag "${MAINTAINER:?}/${PROJECT:?}:latest" "${MAINTAINER:?}/${PROJECT:?}:${TAG:?}"
+    printf "\\n\\n--- Tagging ---\\n"
+    docker tag "${PROJECT:?}:latest" "${PROJECT:?}:${TAG:?}"
 
-    printf "\n\n--- Pushing Images to Docker Hub ---\n"
-    docker push "${MAINTAINER:?}/${PROJECT:?}:${TAG:?}"
-    docker push "${MAINTAINER:?}/${PROJECT:?}:latest"
+    printf "\\n\\n--- Pushing Images to Docker Hub ---\\n"
+    docker push "${PROJECT:?}:${TAG:?}"
+    docker push "${PROJECT:?}:latest"
   else
-    printf "\n\n---Not on master so not tagging ---\n"
-    printf "\nBuilt Images"
+    printf "\\n\\n---Not on master so not tagging ---\\n"
+    printf "\\nBuilt Images"
     docker images
   fi
 }
@@ -67,5 +89,5 @@ push_beta() {
 }
 
 test() {
-  docker run -it "${MAINTAINER:?}"/"${PROJECT:?}" "${1:?}"
+  docker run -it "${PROJECT:?}" "${1:?}"
 }

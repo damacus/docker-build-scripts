@@ -1,0 +1,23 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:latest
+    working_directory: ~/project
+    steps:
+      - checkout
+      - run:
+          name: Test Main
+          command: |
+            sudo apt-get install shellcheck
+            mkdir -p ~/reports
+            shellcheck *.sh || :
+            shellcheck *.sh -f checkstyle > ~/reports/report.xml
+      - store_test_results:
+          path: ~/reports
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build
