@@ -14,7 +14,7 @@ COMMIT=${COMMIT:-$DEFAULT_COMMIT}
 BRANCH_DEFAULT="$(git symbolic-ref --short HEAD)"
 BRANCH="${CIRCLE_BRANCH:-$BRANCH_DEFAULT}"
 
-FILE=${FILE:-Dockerfile}
+FILE=${FILE:-.docker/Dockerfile}
 
 DEFAULT_VCS_URL=$(git config --get remote.origin.url)
 # This strips the matching .git, then splits on :
@@ -31,7 +31,7 @@ build_argument() {
 	value=$(eval echo -n '$'"$1")
 
 	if [[ -n "${value/[ ]*\\n/}" ]];then
-		echo "--build-arg $1=$value "
+		echo "--build-arg $1=\"$value\" "
 	else
     return 0
   fi
