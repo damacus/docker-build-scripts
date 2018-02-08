@@ -18,7 +18,7 @@ FILE=${FILE:-Dockerfile}
 
 DEFAULT_VCS_URL=$(git config --get remote.origin.url)
 # This strips the matching .git, then splits on :
-PROJECT=$(echo "${DEFAULT_VCS_URL%.git}" | cut -d: -f2)
+PROJECT=$(echo "${DEFAULT_VCS_URL%.git}" | cut -d: -f2 | tr '[:upper:]' '[:lower:]')
 
 DEFAULT_MAINTAINER=$(echo "$PROJECT" | cut -d/ -f1)
 MAINTAINER=${MAINTAINER:-$DEFAULT_MAINTAINER}
