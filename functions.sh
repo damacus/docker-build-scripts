@@ -15,10 +15,12 @@ BRANCH_DEFAULT="$(git symbolic-ref --short HEAD)"
 BRANCH="${CIRCLE_BRANCH:-$BRANCH_DEFAULT}"
 
 if [[ -z $FILE ]];then
-  if [[ -e "./docker/Dockerfile" ]];then
-    FILE="./docker/Dockerfile"
-  elif [[ -e "Dockerfile" ]];then
-    FILE="Dockerfile"
+  if [[ -e "./.docker/Dockerfile" ]];then
+    FILE="./.docker/Dockerfile"
+  elif [[ -e "./Dockerfile" ]];then
+    FILE="./Dockerfile"
+  else
+    echo "Didn't file either ./Dockerfile or ./.docker/Dockerfile"
   fi
 fi
 
