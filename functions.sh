@@ -14,7 +14,13 @@ COMMIT=${COMMIT:-$DEFAULT_COMMIT}
 BRANCH_DEFAULT="$(git symbolic-ref --short HEAD)"
 BRANCH="${CIRCLE_BRANCH:-$BRANCH_DEFAULT}"
 
-FILE=${FILE:-.docker/Dockerfile}
+if [[ -z $FILE ]];then
+  if [[ -e "./docker/Dockerfile" ]];then
+    FILE="./docker/Dockerfile"
+  elif [[ -e "Dockerfile" ]];then
+    FILE="Dockerfile"
+  fi
+fi
 
 DEFAULT_VCS_URL=$(git config --get remote.origin.url)
 # This strips the matching .git, then splits on :
