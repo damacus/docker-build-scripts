@@ -1,7 +1,9 @@
 #!/bin/bash -e
 set +o pipefail
 
-DESCRIPTION="${DESCRIPTION:?}"
+if [[ -n "${DESCRIPTION}" ]];then
+  DESCRIPTION="${DESCRIPTION:?}"
+fi
 
 DEFAULT_DATE=$(date +%Y-%m-%dT%T%z)
 DATE=${DATE:-$DEFAULT_DATE}
@@ -22,6 +24,8 @@ DEFAULT_MAINTAINER=$(echo "$PROJECT" | cut -d/ -f1)
 MAINTAINER=${MAINTAINER:-$DEFAULT_MAINTAINER}
 VCS_URL=${VCS_URL:-$DEFAULT_VCS_URL}
 
+DOCKER_BUILD_ARGS=( "PROJECT" "DATE" "COMMIT" "DESCRIPTION"  )
+
 build_argument() {
   local value
 	value=$(eval echo -n '$'"$1")
@@ -40,8 +44,8 @@ build() {
   fi
 
   args=()
-  for arg in PROJECT MAINTAINER VCS_URL DATE COMMIT DESCRIPTION NPM_TOKEN;do
-  	args+=(build_argument "$arg" )
+  for arg in "${DOCKER_BUILD_ARGS[@]}";do
+  	args+=( "$(build_argument "$arg" )" )
   done
 
   local BUILD_ARGS="${args[*]}"
