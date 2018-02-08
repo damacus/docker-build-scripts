@@ -1,6 +1,6 @@
 # Docker Build Scripts
 
-Common build scripts & functions
+Build functions for Docker.
 
 The following environment variables are used
 
