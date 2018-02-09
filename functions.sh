@@ -32,8 +32,6 @@ DEFAULT_MAINTAINER=$(echo "$PROJECT" | cut -d/ -f1)
 MAINTAINER=${MAINTAINER:-$DEFAULT_MAINTAINER}
 VCS_URL=${VCS_URL:-$DEFAULT_VCS_URL}
 
-DOCKER_BUILD_ARGS=( "PROJECT" "DATE" "COMMIT" "DESCRIPTION" "${EXTRA_BUILD_ARGS[@]}" )
-
 build_argument() {
   local value
 	value=$(eval echo -n '$'"$1")
@@ -46,6 +44,12 @@ build_argument() {
 }
 
 build() {
+  local DOCKER_BUILD_ARGS=()
+  DOCKER_BUILD_ARGS+=( "PROJECT" "DATE" "COMMIT" "DESCRIPTION" )
+  if [[ ${#EXTRA_BUILD_ARGS[@]} -gt 0 ]];then
+    DOCKER_BUILD_ARGS+=( "${EXTRA_BUILD_ARGS[@]}" )
+  fi
+
   # Only load and save cache in CI environment
   if [[ -e /caches/app.tar ]];then
     docker load -i /caches/app.tar
