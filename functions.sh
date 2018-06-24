@@ -25,11 +25,13 @@ if [[ -z $FILE ]];then
 fi
 
 DEFAULT_VCS_URL=$(git config --get remote.origin.url)
-# This strips the matching .git, then splits on :
-PROJECT=$(echo "${DEFAULT_VCS_URL%.git}" | cut -d: -f2 | tr '[:upper:]' '[:lower:]')
 
-DEFAULT_MAINTAINER=$(echo "$PROJECT" | cut -d/ -f1)
-MAINTAINER=${MAINTAINER:-$DEFAULT_MAINTAINER}
+# This strips the matching .git, then splits on :
+PROJECT_DEFAULT=$(echo "${DEFAULT_VCS_URL%.git}" | cut -d: -f2 | tr '[:upper:]' '[:lower:]')
+PROJECT=${PROJECT:-$PROJECT_DEFAULT}
+
+MAINTAINER_DEFAULT=$(echo "$PROJECT" | cut -d/ -f1)
+MAINTAINER=${MAINTAINER:-$MAINTAINER_DEFAULT}
 VCS_URL=${VCS_URL:-$DEFAULT_VCS_URL}
 
 build_argument() {
