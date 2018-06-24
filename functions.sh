@@ -1,17 +1,42 @@
 #!/bin/bash -e
 set +o pipefail
 
-if [[ -n "${DESCRIPTION}" ]];then
-  DESCRIPTION="${DESCRIPTION:?}"
-fi
+# Usage:
+# DESCRIPTION:    Description/usage of the image
+#                 e.g. This image is super awesome
+# MAINTAINER:     Image maintainer e.g. damacus
+# PROJECT:        Project name e.g. docker-builder
 
-DEFAULT_DATE=$(date +%Y-%m-%dT%T%z)
-DATE=${DATE:-$DEFAULT_DATE}
+# AUTOMATICALLY SET
+# DATE:           Date time the project was built
+# COMMIT:         Commit hash that was used to build the Dockerfile
+# BRANCH:         Branch to determine if we're on master or not.
+#                 This script only allows pushing to Dockerhub on master
+# VCS_URL:        The git URL Used to compute other attributes
+#                 and for image metadata
+# DOCKERHUB_REPO: hub.docker.com reference to the repo.
+#                 e.g. damacus/docker-builder
 
-DEFAULT_COMMIT=$(git rev-parse --short HEAD)
-COMMIT=${COMMIT:-$DEFAULT_COMMIT}
-
+# Computed Defaults
+VCS_URL_DEFAULT=$(git config --get remote.origin.url)
+DATE_DEFAULT=$(date +%Y-%m-%dT%T%z)
 BRANCH_DEFAULT="$(git symbolic-ref --short HEAD)"
+COMMIT_DEFAULT=$(git rev-parse --short HEAD)
+
+# This strips the matching .git, makes everything lowercase and leaves us with just the repo name
+# e.g.
+# git@github.com:damacus/docker-builder.git
+# docker-builder
+PROJECT_DEFAULT=$(echo "${VCS_URL_DEFAULT%.git}" | cut -d: -f2 | tr '[:upper:]' '[:lower:]' | cut -d/ -f2)
+PROJECT=${PROJECT:-PROJECT_DEFAULT}
+
+DESCRIPTION_DEFAULT="Dockerfile for $PROJECT"
+MAINTAINER_DEFAULT=$(echo "$PROJECT" | cut -d/ -f1)
+
+PROJECT=${PROJECT:-PROJECT_DEFAULT}
+DESCRIPTION="${DESCRIPTION:-$DESCRIPTION_DEFAULT}"
+DATE=${DATE:-$DATE_DEFAULT}
+COMMIT=${COMMIT:-$COMMIT_DEFAULT}
 BRANCH="${CIRCLE_BRANCH:-$BRANCH_DEFAULT}"
 
 if [[ -z $FILE ]];then
@@ -20,19 +45,18 @@ if [[ -z $FILE ]];then
   elif [[ -e "./Dockerfile" ]];then
     FILE="./Dockerfile"
   else
-    echo "Didn't file either ./Dockerfile or ./.docker/Dockerfile"
+    echo "Error: Did not find either ./Dockerfile or ./.docker/Dockerfile"
   fi
 fi
 
-DEFAULT_VCS_URL=$(git config --get remote.origin.url)
-
-# This strips the matching .git, then splits on :
-PROJECT_DEFAULT=$(echo "${DEFAULT_VCS_URL%.git}" | cut -d: -f2 | tr '[:upper:]' '[:lower:]')
-PROJECT=${PROJECT:-$PROJECT_DEFAULT}
-
-MAINTAINER_DEFAULT=$(echo "$PROJECT" | cut -d/ -f1)
 MAINTAINER=${MAINTAINER:-$MAINTAINER_DEFAULT}
-VCS_URL=${VCS_URL:-$DEFAULT_VCS_URL}
+VCS_URL=${VCS_URL:-$VCS_URL_DEFAULT}
+
+if [[ -z ${DOCKERHUB_REPO} ]];then
+  DOCKERHUB_REPO=${PROJECT_DEFAULT}
+else
+  DOCKERHUB_REPO="${MAINTAINER}/${PROJECT}"
+fi
 
 build_argument() {
   local value
@@ -63,16 +87,15 @@ build() {
   done
 
   local BUILD_ARGS="${args[*]}"
-  local CACHE="--cache-from=${PROJECT:?}"
+  local CACHE="--cache-from=${DOCKERHUB_REPO:?}"
   local FILE_FROM="--file ${FILE:?}"
-  local TAG_ARG="--tag ${PROJECT:?}"
+  local TAG_ARG="--tag ${DOCKERHUB_REPO:?}"
 
-  echo "passing build arguments ${BUILD_ARGS}"
   eval "docker build ${CACHE} ${BUILD_ARGS} ${FILE_FROM} ${TAG_ARG} ."
 
  if [[ ${CI} == 'true' ]];then
    mkdir -p /caches
-   docker save -o /caches/app.tar "${PROJECT:?}"
+   docker save -o /caches/app.tar "${DOCKERHUB_REPO:?}"
  fi
 }
 
@@ -83,14 +106,14 @@ push() {
     docker login -u "${DOCKER_LOGIN:?}" -p "${DOCKER_PASSWORD:?}"
 
     printf "\\n\\n--- Images ---\\n"
-    docker images "${PROJECT:?}"
+    docker images "${DOCKERHUB_REPO:?}"
 
     printf "\\n\\n--- Tagging ---\\n"
-    docker tag "${PROJECT:?}:latest" "${PROJECT:?}:${TAG:?}"
+    docker tag "${DOCKERHUB_REPO:?}:latest" "${DOCKERHUB_REPO:?}:${TAG:?}"
 
     printf "\\n\\n--- Pushing Images to Docker Hub ---\\n"
-    docker push "${PROJECT:?}:${TAG:?}"
-    docker push "${PROJECT:?}:latest"
+    docker push "${DOCKERHUB_REPO:?}:${TAG:?}"
+    docker push "${DOCKERHUB_REPO:?}:latest"
   else
     printf "\\n\\n---Not on master so not tagging ---\\n"
     printf "\\nBuilt Images"
@@ -103,5 +126,5 @@ push_beta() {
 }
 
 test() {
-  docker run -it "${PROJECT:?}" "${1:?}"
+  docker run -it "${DOCKERHUB_REPO:?}" "${1:?}"
 }

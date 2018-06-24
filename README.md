@@ -2,19 +2,26 @@
 
 Build functions for Docker.
 
-The following environment variables are used
+The following environment variables are used:
 
-VARIABLE    |                             Description                              |                    Default
-:---------- | :------------------------------------------------------------------: | :--------------------------------------------:
-DESCRIPTION |                    Description of the repository                     |                     empty
-DATE        |                              Build date                              |   Current date in the format YYYY-MM-DD-TIME
-COMMIT      |                             Commit Hash                              |     Output from git rev-parse --short HEAD
-BRANCH      |                            Current branch                            |   Output from git symbolic-ref --short HEAD
-FILE        |                     The source Dockerfile to use                     |                   Dockerfile
-VCS_URL     |                      Git URL for the container                       | Output from git config --get remote.origin.url
-NPM_TOKEN   | Optional argument that to allow npm install to work in the container |                     empty
-PROJECT     |                      The project name and owner                      |     Organisation and user from the Git URL
-MAINTAINER  |                      Maintainer of the project                       |     Organisation or user from the Git URL
+VARIABLE    |          Description          |                    Default
+:---------- | :---------------------------: | :--------------------------------------------:
+DESCRIPTION | Description of the repository |            Dockerfile for $PROJECT
+DATE        |          Build date           |   Current date in the format YYYY-MM-DD-TIME
+COMMIT      |          Commit Hash          |     Output from git rev-parse --short HEAD
+BRANCH      |        Current branch         |   Output from git symbolic-ref --short HEAD
+FILE        | The source Dockerfile to use  |                   Dockerfile
+VCS_URL     |   Git URL for the container   | Output from git config --get remote.origin.url
+PROJECT     |  The project name and owner   |     Organisation and user from the Git URL
+MAINTAINER  |   Maintainer of the project   |     Organisation or user from the Git URL
+
+You may set extra variables to be passed in e.g.
+
+```bash
+EXTRA_BUILD_ARGS+=( "NPM_TOKEN" )
+
+NPM_TOKEN='12345'
+```
 
 ## Usage
 
@@ -32,4 +39,18 @@ source `.docker/functions.sh`
 
 Overwrite a default by exporting it before you source the script.
 
-`export DATE=$(date +%Y-%m-%d)` << This will omit the current time.
+This will omit the current time.
+
+```bash
+export DATE=$(date +%Y-%m-%d)
+```
+
+If your Github repository does not match the docker hub repository, you may wish to set the PROJECT variable
+
+e.g. Dockerhub repo is set to `foo` Github repo is set to `bar`
+
+To push to the `foo` repo on Dockerhub
+
+```bash
+export PROJECT=foo`
+```
