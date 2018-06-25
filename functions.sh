@@ -17,11 +17,17 @@ set +o pipefail
 # DOCKERHUB_REPO: hub.docker.com reference to the repo.
 #                 e.g. damacus/docker-builder
 
-# Computed Defaults
-VCS_URL_DEFAULT=$(git config --get remote.origin.url)
-DATE_DEFAULT=$(date +%Y-%m-%dT%T%z)
 BRANCH_DEFAULT="$(git symbolic-ref --short HEAD)"
+BRANCH="${CIRCLE_BRANCH:-$BRANCH_DEFAULT}"
+
 COMMIT_DEFAULT=$(git rev-parse --short HEAD)
+COMMIT=${COMMIT:-$COMMIT_DEFAULT}
+
+VCS_URL_DEFAULT=$(git config --get remote.origin.url)
+VCS_URL=${VCS_URL:-$VCS_URL_DEFAULT}
+
+DATE_DEFAULT=$(date +%Y-%m-%dT%T%z)
+DATE=${DATE:-$DATE_DEFAULT}
 
 # This strips the matching .git, makes everything lowercase and leaves us with just the repo name
 # e.g.
@@ -31,16 +37,18 @@ PROJECT_DEFAULT=$(echo "${VCS_URL_DEFAULT%.git}" | cut -d: -f2 | tr '[:upper:]' 
 PROJECT=${PROJECT:-$PROJECT_DEFAULT}
 
 DESCRIPTION_DEFAULT="Dockerfile for ${PROJECT}"
-MAINTAINER_DEFAULT=$(echo "${PROJECT}" | cut -d/ -f1)
-
 DESCRIPTION="${DESCRIPTION:-$DESCRIPTION_DEFAULT}"
-DATE=${DATE:-$DATE_DEFAULT}
-COMMIT=${COMMIT:-$COMMIT_DEFAULT}
-BRANCH="${CIRCLE_BRANCH:-$BRANCH_DEFAULT}"
+
+MAINTAINER_DEFAULT=$(echo "${VCS_URL_DEFAULT%.git}" | cut -d: -f2 | tr '[:upper:]' '[:lower:]' | cut -d/ -f2)
+MAINTAINER=${MAINTAINER:-$MAINTAINER_DEFAULT}
+
+DOCKERHUB_REPO_DEFAULT="${MAINTAINER}/${PROJECT}"
+DOCKERHUB_REPO="${DOCKERHUB_REPO:-$DOCKERHUB_REPO_DEFAULT}"
 
 echo "Project is set to: ${PROJECT}"
 echo "Branch is set to: ${BRANCH}"
 echo "Description is set to: ${DESCRIPTION}"
+echo "Dockerhub repository is set to: $DOCKERHUB_REPO"
 
 if [[ -z $FILE ]];then
   if [[ -e "./.docker/Dockerfile" ]];then
@@ -51,14 +59,6 @@ if [[ -z $FILE ]];then
     echo "Error: Did not find either ./Dockerfile or ./.docker/Dockerfile"
   fi
 fi
-
-MAINTAINER=${MAINTAINER:-$MAINTAINER_DEFAULT}
-VCS_URL=${VCS_URL:-$VCS_URL_DEFAULT}
-
-DOCKERHUB_REPO_DEFAULT="${MAINTAINER}/${PROJECT}"
-DOCKERHUB_REPO="${DOCKERHUB_REPO:-$DOCKERHUB_REPO_DEFAULT}"
-
-echo "Dockerhub repository is set to: $DOCKERHUB_REPO"
 
 build_argument() {
   local value
