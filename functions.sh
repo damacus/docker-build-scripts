@@ -28,20 +28,19 @@ COMMIT_DEFAULT=$(git rev-parse --short HEAD)
 # git@github.com:damacus/docker-builder.git
 # docker-builder
 PROJECT_DEFAULT=$(echo "${VCS_URL_DEFAULT%.git}" | cut -d: -f2 | tr '[:upper:]' '[:lower:]' | cut -d/ -f2)
-PROJECT=${PROJECT:-PROJECT_DEFAULT}
+PROJECT=${PROJECT:-$PROJECT_DEFAULT}
 
-DESCRIPTION_DEFAULT="Dockerfile for $PROJECT"
-MAINTAINER_DEFAULT=$(echo "$PROJECT" | cut -d/ -f1)
+DESCRIPTION_DEFAULT="Dockerfile for ${PROJECT}"
+MAINTAINER_DEFAULT=$(echo "${PROJECT}" | cut -d/ -f1)
 
-PROJECT=${PROJECT:-PROJECT_DEFAULT}
 DESCRIPTION="${DESCRIPTION:-$DESCRIPTION_DEFAULT}"
 DATE=${DATE:-$DATE_DEFAULT}
 COMMIT=${COMMIT:-$COMMIT_DEFAULT}
 BRANCH="${CIRCLE_BRANCH:-$BRANCH_DEFAULT}"
 
-echo "Project is set to: $PROJECT"
-echo "Branch is set to: $BRANCH"
-echo "Description is set to: $DESCRIPTION"
+echo "Project is set to: ${PROJECT}"
+echo "Branch is set to: ${BRANCH}"
+echo "Description is set to: ${DESCRIPTION}"
 
 if [[ -z $FILE ]];then
   if [[ -e "./.docker/Dockerfile" ]];then
