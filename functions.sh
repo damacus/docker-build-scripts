@@ -39,6 +39,10 @@ DATE=${DATE:-$DATE_DEFAULT}
 COMMIT=${COMMIT:-$COMMIT_DEFAULT}
 BRANCH="${CIRCLE_BRANCH:-$BRANCH_DEFAULT}"
 
+echo "Project is set to: $PROJECT"
+echo "Branch is set to: $BRANCH"
+echo "Description is set to: $DESCRIPTION"
+
 if [[ -z $FILE ]];then
   if [[ -e "./.docker/Dockerfile" ]];then
     FILE="./.docker/Dockerfile"
