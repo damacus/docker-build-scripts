@@ -45,9 +45,9 @@ MAINTAINER=${MAINTAINER:-$MAINTAINER_DEFAULT}
 DOCKERHUB_REPO_DEFAULT="${MAINTAINER}/${PROJECT}"
 DOCKERHUB_REPO="${DOCKERHUB_REPO:-$DOCKERHUB_REPO_DEFAULT}"
 
-echo "Project is set to: ${PROJECT}"
-echo "Branch is set to: ${BRANCH}"
-echo "Description is set to: ${DESCRIPTION}"
+echo "Project is set to: $PROJECT"
+echo "Branch is set to: $BRANCH"
+echo "Maintiner is set to $MAINTAINER"
 echo "Dockerhub repository is set to: $DOCKERHUB_REPO"
 
 if [[ -z $FILE ]];then
@@ -123,10 +123,29 @@ push() {
   fi
 }
 
-push_beta() {
-  true
+docker_test() {
+  docker-compose -f .docker/docker-compose.yaml up -d
+  inspec exec tests -t docker://docker_builder_1 --controls=terraform-commands
+  docker-compose -f .docker/docker-compose.yaml down
+  docker-compose -f .docker/docker-compose.yaml rm --force
 }
 
-test() {
-  docker run -it "${DOCKERHUB_REPO:?}" "${1:?}"
+cleanup_variables() {
+  # Cleanup after ourselves
+  unset BRANCH
+  unset BRANCH_DEFAULT
+  unset COMMIT
+  unset COMMIT_DEFAULT
+  unset VCS_URL
+  unset VCS_URL_DEFAULT
+  unset DATE
+  unset DATE_DEFAULT
+  unset PROJECT
+  unset PROJECT_DEFAULT
+  unset DESCRIPTION
+  unset DESCRIPTION_DEFAULT
+  unset MAINTAINER
+  unset MAINTAINER_DEFAULT
+  unset DOCKERHUB_REPO
+  unset DOCKERHUB_REPO_DEFAULT
 }
