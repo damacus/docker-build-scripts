@@ -165,3 +165,8 @@ cleanup_variables() {
   unset DOCKERHUB_REPO
   unset DOCKERHUB_REPO_DEFAULT
 }
+
+docker_label() {
+  LABEL=${1:?}
+  docker inspect damacus/docker-builder | jq -r ".[0].Config.Labels[\"${LABEL}\"]"
+}
