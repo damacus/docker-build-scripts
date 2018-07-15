@@ -50,13 +50,16 @@ echo "Branch is set to: $BRANCH"
 echo "Maintiner is set to $MAINTAINER"
 echo "Dockerhub repository is set to: $DOCKERHUB_REPO"
 
-if [[ -z $FILE ]];then
+if [[ -z $DOCKERFILE ]];then
   if [[ -e "./.docker/Dockerfile" ]];then
     FILE="./.docker/Dockerfile"
   elif [[ -e "./Dockerfile" ]];then
     FILE="./Dockerfile"
   else
-    echo "Error: Did not find either ./Dockerfile or ./.docker/Dockerfile"
+    echo "
+Error: Did not find either ./Dockerfile or ./.docker/Dockerfile
+If the file you are trying to build is not one of those, set the \$DOCKERFILE variable before sourcing this script.
+    "
   fi
 fi
 
@@ -124,10 +127,23 @@ push() {
 }
 
 docker_test() {
-  docker-compose -f .docker/docker-compose.yaml up -d
-  inspec exec tests -t docker://docker_builder_1 --controls=terraform-commands
-  docker-compose -f .docker/docker-compose.yaml down
-  docker-compose -f .docker/docker-compose.yaml rm --force
+  if [[ -z $COMPOSE_FILE ]];then
+    if [[ -e "./.docker/docker-compose.yaml" ]];then
+      COMPOSE_FILE="./.docker/docker-compose.yaml"
+    elif [[ -e "./docker-compose.yaml" ]];then
+      COMPOSE_FILE="./docker-compose.yaml"
+    else
+      echo "
+Error: Did not find either ./docker-compose.yaml or ./.docker/docker-compose.yaml
+Please place your yaml file in either location or set the \$COMPOSE_FILE variable before sourcing this script.
+      "
+    fi
+  fi
+
+  docker-compose -f $COMPOSE_FILE up -d
+  inspec exec tests -t docker://docker_builder_1
+  docker-compose -f $COMPOSE_FILE down
+  docker-compose -f $COMPOSE_FILE rm --force
 }
 
 cleanup_variables() {
