@@ -45,18 +45,21 @@ MAINTAINER=${MAINTAINER:-$MAINTAINER_DEFAULT}
 DOCKERHUB_REPO_DEFAULT="${MAINTAINER}/${PROJECT}"
 DOCKERHUB_REPO="${DOCKERHUB_REPO:-$DOCKERHUB_REPO_DEFAULT}"
 
-echo "Project is set to: ${PROJECT}"
-echo "Branch is set to: ${BRANCH}"
-echo "Description is set to: ${DESCRIPTION}"
+echo "Project is set to: $PROJECT"
+echo "Branch is set to: $BRANCH"
+echo "Maintiner is set to $MAINTAINER"
 echo "Dockerhub repository is set to: $DOCKERHUB_REPO"
 
-if [[ -z $FILE ]];then
+if [[ -z $DOCKERFILE ]];then
   if [[ -e "./.docker/Dockerfile" ]];then
     FILE="./.docker/Dockerfile"
   elif [[ -e "./Dockerfile" ]];then
     FILE="./Dockerfile"
   else
-    echo "Error: Did not find either ./Dockerfile or ./.docker/Dockerfile"
+    echo "
+Error: Did not find either ./Dockerfile or ./.docker/Dockerfile
+If the file you are trying to build is not one of those, set the \$DOCKERFILE variable before sourcing this script.
+    "
   fi
 fi
 
@@ -123,10 +126,42 @@ push() {
   fi
 }
 
-push_beta() {
-  true
+docker_test() {
+  if [[ -z $COMPOSE_FILE ]];then
+    if [[ -e "./.docker/docker-compose.yaml" ]];then
+      COMPOSE_FILE="./.docker/docker-compose.yaml"
+    elif [[ -e "./docker-compose.yaml" ]];then
+      COMPOSE_FILE="./docker-compose.yaml"
+    else
+      echo "
+Error: Did not find either ./docker-compose.yaml or ./.docker/docker-compose.yaml
+Please place your yaml file in either location or set the \$COMPOSE_FILE variable before sourcing this script.
+      "
+    fi
+  fi
+
+  docker-compose -f $COMPOSE_FILE up -d
+  inspec exec tests -t docker://docker_builder_1
+  docker-compose -f $COMPOSE_FILE down
+  docker-compose -f $COMPOSE_FILE rm --force
 }
 
-test() {
-  docker run -it "${DOCKERHUB_REPO:?}" "${1:?}"
+cleanup_variables() {
+  # Cleanup after ourselves
+  unset BRANCH
+  unset BRANCH_DEFAULT
+  unset COMMIT
+  unset COMMIT_DEFAULT
+  unset VCS_URL
+  unset VCS_URL_DEFAULT
+  unset DATE
+  unset DATE_DEFAULT
+  unset PROJECT
+  unset PROJECT_DEFAULT
+  unset DESCRIPTION
+  unset DESCRIPTION_DEFAULT
+  unset MAINTAINER
+  unset MAINTAINER_DEFAULT
+  unset DOCKERHUB_REPO
+  unset DOCKERHUB_REPO_DEFAULT
 }
