@@ -39,7 +39,7 @@ PROJECT=${PROJECT:-$PROJECT_DEFAULT}
 DESCRIPTION_DEFAULT="Dockerfile for ${PROJECT}"
 DESCRIPTION="${DESCRIPTION:-$DESCRIPTION_DEFAULT}"
 
-MAINTAINER_DEFAULT=$(echo "${VCS_URL_DEFAULT%.git}" | cut -d: -f2 | tr '[:upper:]' '[:lower:]' | cut -d/ -f2)
+MAINTAINER_DEFAULT=$(echo "${VCS_URL_DEFAULT%.git}" | cut -d: -f2 | tr '[:upper:]' '[:lower:]' | cut -d/ -f1)
 MAINTAINER=${MAINTAINER:-$MAINTAINER_DEFAULT}
 
 DOCKERHUB_REPO_DEFAULT="${MAINTAINER}/${PROJECT}"
