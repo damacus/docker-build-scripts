@@ -127,6 +127,8 @@ push() {
 }
 
 docker_test() {
+  IMAGE_NAME=${1:?}
+
   if [[ -z $COMPOSE_FILE ]];then
     if [[ -e "./.docker/docker-compose.yaml" ]];then
       COMPOSE_FILE="./.docker/docker-compose.yaml"
@@ -141,7 +143,7 @@ Please place your yaml file in either location or set the \$COMPOSE_FILE variabl
   fi
 
   docker-compose -f $COMPOSE_FILE up -d
-  inspec exec tests -t docker://docker_builder_1
+  inspec exec tests -t docker://$IMAGE_NAME
   docker-compose -f $COMPOSE_FILE down
   docker-compose -f $COMPOSE_FILE rm --force
 }
@@ -166,7 +168,9 @@ cleanup_variables() {
   unset DOCKERHUB_REPO_DEFAULT
 }
 
+# docker_label damacus/terraform-builder "com.docker.compose.version"
 docker_label() {
-  LABEL=${1:?}
-  docker inspect damacus/docker-builder | jq -r ".[0].Config.Labels[\"${LABEL}\"]"
+  IMAGE=${1:?}
+  LABEL=${2:?}
+  docker inspect $IMAGE | jq -r ".[0].Config.Labels[\"${LABEL}\"]"
 }
