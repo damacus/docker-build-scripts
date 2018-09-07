@@ -94,10 +94,10 @@ build() {
   local BUILD_ARGS="${args[*]}"
   local CACHE="--cache-from=${DOCKERHUB_REPO:?}"
   local FILE_FROM="--file ${FILE:?}"
-  local TAG=${CIRCLE_BUILD_NUM:-beta}
-  local VERSION_TAG="--tag ${DOCKERHUB_REPO:?}:${TAG:-latest}"
+  local BUILD_TAG="--tag ${DOCKERHUB_REPO:?}:${CIRCLE_BUILD_NUM:-beta}"
+  local LATEST_TAG="--tag ${DOCKERHUB_REPO:?}:latest"
 
-  eval "docker build ${CACHE} ${BUILD_ARGS} ${FILE_FROM} ${VERSION_TAG} ."
+  eval "docker build ${CACHE} ${BUILD_ARGS} ${FILE_FROM} ${BUILD_TAG} ${LATEST_TAG}."
 
   if [[ ${CI} == 'true' ]];then
     mkdir -p /caches
@@ -106,7 +106,8 @@ build() {
 }
 
 push() {
-  local TAG=${CIRCLE_BUILD_NUM:-beta}
+  local BUILD_TAG="${CIRCLE_BUILD_NUM:-beta}"
+  local LATEST_TAG="${DOCKERHUB_REPO:?}:latest"
 
   if [ "${BRANCH}" = "master" ]; then
     docker login -u "${DOCKER_LOGIN:?}" -p "${DOCKER_PASSWORD:?}"
@@ -115,8 +116,8 @@ push() {
     docker images "${DOCKERHUB_REPO:?}"
 
     printf "\\n\\n--- Pushing Images to Docker Hub ---\\n"
-    docker push "${DOCKERHUB_REPO:?}:${TAG:?}"
-    docker push "${DOCKERHUB_REPO:?}:latest"
+    docker push "${BUILD_TAG}"
+    docker push "${LATEST_TAG}"
   else
     printf "\\n\\n---Not on master so not tagging ---\\n"
     printf "\\nBuilt Images"
