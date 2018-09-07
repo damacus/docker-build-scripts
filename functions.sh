@@ -94,18 +94,20 @@ build() {
   local BUILD_ARGS="${args[*]}"
   local CACHE="--cache-from=${DOCKERHUB_REPO:?}"
   local FILE_FROM="--file ${FILE:?}"
-  local TAG_ARG="--tag ${DOCKERHUB_REPO:?}"
+  local BUILD_TAG="--tag ${DOCKERHUB_REPO:?}:${CIRCLE_BUILD_NUM:-beta}"
+  local LATEST_TAG="--tag ${DOCKERHUB_REPO:?}:latest"
 
-  eval "docker build ${CACHE} ${BUILD_ARGS} ${FILE_FROM} ${TAG_ARG} ."
+  eval "docker build ${CACHE} ${BUILD_ARGS} ${FILE_FROM} ${BUILD_TAG} ${LATEST_TAG}."
 
- if [[ ${CI} == 'true' ]];then
-   mkdir -p /caches
-   docker save -o /caches/app.tar "${DOCKERHUB_REPO:?}"
- fi
+  if [[ ${CI} == 'true' ]];then
+    mkdir -p /caches
+    docker save -o /caches/app.tar "${DOCKERHUB_REPO:?}"
+  fi
 }
 
 push() {
-  TAG=${CIRCLE_BUILD_NUM:-beta}
+  local BUILD_TAG="${CIRCLE_BUILD_NUM:-beta}"
+  local LATEST_TAG="${DOCKERHUB_REPO:?}:latest"
 
   if [ "${BRANCH}" = "master" ]; then
     docker login -u "${DOCKER_LOGIN:?}" -p "${DOCKER_PASSWORD:?}"
@@ -113,12 +115,9 @@ push() {
     printf "\\n\\n--- Images ---\\n"
     docker images "${DOCKERHUB_REPO:?}"
 
-    printf "\\n\\n--- Tagging ---\\n"
-    docker tag "${DOCKERHUB_REPO:?}:latest" "${DOCKERHUB_REPO:?}:${TAG:?}"
-
     printf "\\n\\n--- Pushing Images to Docker Hub ---\\n"
-    docker push "${DOCKERHUB_REPO:?}:${TAG:?}"
-    docker push "${DOCKERHUB_REPO:?}:latest"
+    docker push "${BUILD_TAG}"
+    docker push "${LATEST_TAG}"
   else
     printf "\\n\\n---Not on master so not tagging ---\\n"
     printf "\\nBuilt Images"
@@ -126,10 +125,18 @@ push() {
   fi
 }
 
+# docker_label damacus/terraform-builder "com.docker.compose.version"
+docker_label() {
+  IMAGE=${1:?}
+  LABEL=${2:?}
+  docker inspect "${IMAGE}" | jq -r ".[0].Config.Labels[\"${LABEL}\"]"
+}
+
 docker_test() {
   IMAGE_NAME=${1:?}
+  echo "${IMAGE_NAME}"
 
-  if [[ -z $COMPOSE_FILE ]];then
+  if [[ -z ${COMPOSE_FILE} ]];then
     if [[ -e "./.docker/docker-compose.yaml" ]];then
       COMPOSE_FILE="./.docker/docker-compose.yaml"
     elif [[ -e "./docker-compose.yaml" ]];then
@@ -143,7 +150,7 @@ Please place your yaml file in either location or set the \$COMPOSE_FILE variabl
   fi
 
   docker-compose -f $COMPOSE_FILE up -d
-  inspec exec tests -t docker://$IMAGE_NAME
+  inspec exec tests -t "docker://${IMAGE_NAME}"
   docker-compose -f $COMPOSE_FILE down
   docker-compose -f $COMPOSE_FILE rm --force
 }
@@ -166,11 +173,4 @@ cleanup_variables() {
   unset MAINTAINER_DEFAULT
   unset DOCKERHUB_REPO
   unset DOCKERHUB_REPO_DEFAULT
-}
-
-# docker_label damacus/terraform-builder "com.docker.compose.version"
-docker_label() {
-  IMAGE=${1:?}
-  LABEL=${2:?}
-  docker inspect $IMAGE | jq -r ".[0].Config.Labels[\"${LABEL}\"]"
 }
