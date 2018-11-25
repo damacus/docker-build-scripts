@@ -149,7 +149,7 @@ Please place your yaml file in either location or set the \$COMPOSE_FILE variabl
     fi
   fi
 
-  docker-compose -f $COMPOSE_FILE up -d
+  docker-compose -f $COMPOSE_FILE up -d --build
   inspec exec tests -t "docker://${IMAGE_NAME}"
   docker-compose -f $COMPOSE_FILE down
   docker-compose -f $COMPOSE_FILE rm --force
